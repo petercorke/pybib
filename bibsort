@@ -1,0 +1,100 @@
+#! /usr/bin/env python
+#
+# Sort bibliographies in chronological order
+#
+
+# Copyright (c) 2007, Peter Corke
+#
+# All rights reserved.
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+#     * Redistributions of source code must retain the above copyright
+#       notice, this list of conditions and the following disclaimer.
+#     * Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
+#     * The name of the copyright holder may not be used to endorse or 
+#	promote products derived from this software without specific prior 
+#	written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ``AS IS''
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS AND CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+# THE POSSIBILITY OF SUCH DAMAGE.
+
+import Bibliography;
+import BibEntry;
+import BibTeX;
+import string;
+import sys;
+import optparse;
+
+
+## parse switches
+usage = '''usage: %prog [options] [bibfiles]
+
+:: Sort bibliographies in chronological order'''
+p = optparse.OptionParser(usage)
+p.add_option('--reverse', dest='reverseSort', action='store_true',
+             help='sort into ascending data order (old at top)');
+p.add_option('--resolve', dest='resolve', action='store_true',
+             help='resolve cross reference entries');
+p.set_defaults(reverseSort=False, resolve=False);
+(opts, args) = p.parse_args()
+globals().update(opts.__dict__)
+
+if len(args) == 0 and sys.stdin.isatty():
+	p.print_help();
+	sys.exit(0);
+
+count = {};
+
+sortReturn = -1 if reverseSort else 1;
+
+def sortByDate(a, b):
+	# On input a and b are BibEntry objects
+	ay = a.getYear();
+	by = b.getYear();
+	if ay > by:
+		return -sortReturn;
+	elif ay < by:
+		return sortReturn;
+	else:
+		am = a.getMonth();
+		bm = b.getMonth();
+		if am > bm:
+			return -sortReturn;
+		elif am < bm:
+			return sortReturn;
+		else:
+			return 0;
+
+outbib = BibTeX.BibTeX();
+
+if args:
+	for f in args:
+		bib = BibTeX.BibTeX();
+		n = bib.parseFile(f);
+
+		sys.stderr.write( "%d records read from %s\n" % (n, f) );
+
+else:
+	bib = BibTeX.BibTeX();
+	bib.parseFile();
+
+	sys.stderr.write( "%d records read from stdin\n" % len(bib) );
+
+# sort it		
+bib.sort(sortByDate);
+
+# and output the result
+for s in bib:
+	s.write();

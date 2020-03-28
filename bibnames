@@ -1,0 +1,89 @@
+#! /usr/bin/env python
+#
+# Display a list of authors and their occurrence in the bibfiles
+#
+# each output line is of the form:
+#
+#	Surname,I  N
+#
+# where I is their initial and N is the number of occurrences.  This can be 
+# fed throug sort -n -r +1 to get a list of authors in descending order
+# of occurrence.  Figure out who is your favourite co-author!
+
+# Copyright (c) 2007, Peter Corke
+#
+# All rights reserved.
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+#     * Redistributions of source code must retain the above copyright
+#       notice, this list of conditions and the following disclaimer.
+#     * Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
+#     * The name of the copyright holder may not be used to endorse or 
+#	promote products derived from this software without specific prior 
+#	written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ``AS IS''
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS AND CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+# THE POSSIBILITY OF SUCH DAMAGE.
+
+
+import Bibliography;
+import BibEntry;
+import BibTeX;
+import string;
+import sys;
+import getopt;
+import optparse;
+
+## parse switches
+usage = '''usage: %prog [options] [bibfiles]
+
+:: Display a list of authors and their occurrence'''
+p = optparse.OptionParser(usage)
+#p.add_option('--reverse', dest='reverseSort', action='store_true',
+#             help='sort into ascending data order (old at top)');
+#p.add_option('--resolve', dest='resolve', action='store_true',
+#             help='resolve cross reference entries');
+#p.set_defaults(reverseSort=False, resolve=False);
+(opts, args) = p.parse_args()
+globals().update(opts.__dict__)
+
+if len(args) == 0 and sys.stdin.isatty():
+	p.print_help();
+	sys.exit(0);
+
+
+## read the input files	
+bib = BibTeX.BibTeX();
+if args:
+	for f in args:
+		bib.parseFile(f);
+else:
+	bib.parseFile();
+
+# Build a list of unique names: Surname,Initial and update occurrence
+nameList = {};
+for be in bib:
+	surnames = be.getAuthorsSurnameList();
+	if surnames:
+		for s in surnames:
+			s = ','.join(s);
+			if s in nameList:
+				nameList[s] += 1
+			else:
+				nameList[s] = 1;
+
+# display names and occurrence.
+for s,v in  nameList.iteritems():
+	print s, v;
